@@ -1,10 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import _ from 'lodash';
+import memoizee from 'memoizee';
 
 import '../vendor/prism-line-highlight.css';
-import Prism from 'prismjs';
-import memoizee from 'memoizee';
 import styles from '../styles.module.css';
 import { getNpmDependencies } from '../configurator/configurator';
 import { getDiffAsLineNumber } from '../configurator/Diff';
@@ -14,7 +13,6 @@ import npmVersionPromise from '../fetch-npm-version';
 // import prettier from 'prettier/standalone'
 // const parserBabylon = require('prettier/parser-babylon')
 
-require('prismjs/themes/prism-tomorrow.css');
 require('../vendor/PrismLineHighlight');
 
 const FileList = ({ files, selectedFile, onSelectFile }) => {
@@ -80,9 +78,27 @@ FileList.defaultProps = {
   selectedFile: '',
 };
 
+// based on https://github.com/PrismJS/prism/blob/master/components.json
+const extensionToPrismLanguage = {
+  babelrc: 'language-javascript',
+  css: 'language-css',
+  gitignore: 'language-bash',
+  html: 'language-html',
+  js: 'language-javascript',
+  json: 'language-json',
+  less: 'language-less',
+  md: 'language-markdown',
+  scss: 'language-scss',
+  styl: 'language-stylus',
+  svelte: 'language-markup',
+  ts: 'language-typescript',
+  tsx: 'language-typescript',
+  vue: 'language-markup',
+};
+
 class CodeBox extends React.Component {
   componentDidMount() {
-    Prism.highlightAll();
+    global.Prism.highlightAll();
   }
 
   componentDidUpdate(props) {
@@ -90,16 +106,19 @@ class CodeBox extends React.Component {
       props.code !== this.props.code ||
       props.highlightedLines !== this.props.highlightedLines
     ) {
-      Prism.highlightAll();
+      global.Prism.highlightAll();
     }
   }
 
   render() {
-    const { code, highlightedLines } = this.props;
+    const { code, highlightedLines, extension } = this.props;
+    const extKey = extension ? extension.substring(1) : null;
+    const codeClassName = extensionToPrismLanguage[extKey] || '';
+
     return (
       <div className={styles.codeBox}>
         <pre className={styles.codeBoxPre} data-line={highlightedLines}>
-          <code className="language-javascript">{code}</code>
+          <code className={codeClassName}>{code}</code>
         </pre>
       </div>
     );
@@ -107,11 +126,13 @@ class CodeBox extends React.Component {
 }
 
 CodeBox.propTypes = {
+  extension: PropTypes.string,
   code: PropTypes.string,
   highlightedLines: PropTypes.string,
 };
 
 CodeBox.defaultProps = {
+  extension: '',
   highlightedLines: '',
   code: '',
 };
@@ -161,8 +182,8 @@ class FileBrowser extends React.Component {
   render() {
     const { fileContentMap } = this.props;
     const fileContent = _.get(fileContentMap, this.state.selectedFile, '');
-
-    const extension = this.state.selectedFile.match(extensionRegex);
+    const extensionMatch = this.state.selectedFile.match(extensionRegex);
+    const extension = Array.isArray(extensionMatch) ? extensionMatch[0] : null;
 
     return (
       <div className={styles.fileBrowser} id="file-browser">

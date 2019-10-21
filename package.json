@@ -42,7 +42,6 @@
     "lodash": "^4.17.15",
     "memoizee": "^0.4.14",
     "node-fetch": "^2.3.0",
-    "prismjs": "^1.15.0",
     "react": "^16.8.3",
     "react-countdown-now": "^2.1.0",
     "react-dom": "^16.8.3",
